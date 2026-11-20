@@ -39,6 +39,12 @@ public final class ScanViewModel: ObservableObject {
     @Published public var whitelistedTools: [WhitelistedTool] = []
     @Published public var showAddRuleSheet: Bool = false
 
+    // Trust List & Scan Baseline State
+    @Published public var scanBaseline: ScanBaseline?
+    @Published public var baselineDiff: BaselineDiff?
+    @Published public var showNewRisksOnly: Bool = false
+    @Published public var hasPerformedAutoScan: Bool = false
+
     // Report Export State
     public enum ExportFormat: String, CaseIterable, Identifiable {
         case markdown = "Markdown"
@@ -99,7 +105,9 @@ public final class ScanViewModel: ObservableObject {
     // MARK: - Initialization
     public init() {
         self.firmwareReport = FirmwarePostureEngine.shared.evaluate()
+        Self.loadPersistedCustomWhitelistRulesIntoEngine()
         self.whitelistedTools = WhitelistEngine.shared.allTools
+        self.scanBaseline = Self.loadPersistedBaseline()
         if let savedPlatformRaw = UserDefaults.standard.string(forKey: Self.shieldPlatformKey),
            let savedPlatform = ProxyShieldPlatform(rawValue: savedPlatformRaw) {
             self.selectedShieldPlatform = savedPlatform
@@ -120,7 +128,25 @@ public final class ScanViewModel: ObservableObject {
 
     public func navigateToFindings(filter: RiskTier? = nil) {
         self.selectedRiskFilter = filter
+        self.showNewRisksOnly = false
         self.selectedTab = 1
+    }
+
+    public func navigateToNewRisks() {
+        self.selectedRiskFilter = nil
+        self.showNewRisksOnly = true
+        self.selectedTab = 1
+    }
+
+    /// Automatically starts a full scan once per app launch when a scan
+    /// source is already configured (pairing file, saved snapshot, or
+    /// queued IPA packages). Never fires twice per launch and never
+    /// interrupts an in-progress scan.
+    public func autoScanIfConfigured() {
+        guard !hasPerformedAutoScan, !isScanning, currentSession == nil else { return }
+        guard hasPairingFile || hasSavedSnapshot || !syncedPackageNames.isEmpty else { return }
+        hasPerformedAutoScan = true
+        startSystemScan()
     }
 
     private static let maxPairingFileBytes = 4 * 1024 * 1024
@@ -670,6 +696,11 @@ public final class ScanViewModel: ObservableObject {
         guard let session = currentSession else { return [] }
         var list = session.findings
 
+        if showNewRisksOnly {
+            let ids = baselineDiff?.newRiskBundleIds ?? []
+            list = list.filter { ids.contains($0.bundleId) }
+        }
+
         if let filter = selectedRiskFilter {
             list = list.filter { $0.riskTier == filter }
         }
@@ -691,6 +722,7 @@ public final class ScanViewModel: ObservableObject {
     public var cautionCount: Int { currentSession?.riskBreakdown[.caution, default: 0] ?? 0 }
     public var safeCount: Int { currentSession?.riskBreakdown[.safe, default: 0] ?? 0 }
     public var totalScannedCount: Int { currentSession?.totalApps ?? 0 }
+    public var newRiskCount: Int { baselineDiff?.newRiskCount ?? 0 }
 
     // MARK: - Unified Installed Application Scan Actions (Registry + Synced IPA Queue + On-Device Probe)
     public func startSystemScan() {
@@ -745,6 +777,7 @@ public final class ScanViewModel: ObservableObject {
                 self.isScanning = false
                 self.scanProgress = nil
                 self.updateExportedReport()
+                self.finishSystemScanBaselineUpdate()
                 #if os(iOS)
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 #endif
@@ -816,9 +849,21 @@ public final class ScanViewModel: ObservableObject {
             self.isScanning = false
             self.scanProgress = nil
             self.updateExportedReport()
+            self.finishSystemScanBaselineUpdate()
             #if os(iOS)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             #endif
+        }
+    }
+
+    /// After a full installed-app scan: the first scan establishes the
+    /// baseline automatically; later scans diff against it.
+    private func finishSystemScanBaselineUpdate() {
+        guard let session = currentSession else { return }
+        if scanBaseline == nil {
+            establishBaseline(from: session)
+        } else {
+            refreshBaselineDiff()
         }
     }
 
@@ -1020,6 +1065,7 @@ public final class ScanViewModel: ObservableObject {
     public func toggleWhitelist(for tool: WhitelistedTool, isEnabled: Bool) {
         WhitelistEngine.shared.toggleTool(named: tool.name, isEnabled: isEnabled)
         self.whitelistedTools = WhitelistEngine.shared.allTools
+        persistCustomWhitelistRules()
         recalculateSessionTiers()
     }
 
@@ -1044,6 +1090,7 @@ public final class ScanViewModel: ObservableObject {
         )
         WhitelistEngine.shared.registerCustomTool(newTool)
         self.whitelistedTools = WhitelistEngine.shared.allTools
+        persistCustomWhitelistRules()
         recalculateSessionTiers()
     }
 
@@ -1053,13 +1100,122 @@ public final class ScanViewModel: ObservableObject {
         }
         WhitelistEngine.shared.removeTool(named: name)
         self.whitelistedTools = WhitelistEngine.shared.allTools
+        persistCustomWhitelistRules()
         recalculateSessionTiers()
     }
 
     public func resetWhitelistToDefaults() {
         WhitelistEngine.shared.resetToDefaults()
         self.whitelistedTools = WhitelistEngine.shared.allTools
+        persistCustomWhitelistRules()
         recalculateSessionTiers()
+    }
+
+    // MARK: - Trust List & Scan Baseline
+
+    private static let trustedToolsFileName = "trusted_tools.json"
+    private static let baselineFileName = "scan_baseline.json"
+    private static let maxTrustedToolsBytes = 256 * 1024
+    private static let maxBaselineBytes = 1024 * 1024
+
+    private var trustedToolsURL: URL {
+        appSupportDirectory.appendingPathComponent(Self.trustedToolsFileName)
+    }
+
+    private var baselineURL: URL {
+        appSupportDirectory.appendingPathComponent(Self.baselineFileName)
+    }
+
+    private static func registryDirectoryForPersistence() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let dir = base.appendingPathComponent("WQGuardRegistry", isDirectory: true)
+        return ensureSafeNonSymlinkDirectory(at: dir)
+    }
+
+    private static func loadPersistedCustomWhitelistRulesIntoEngine() {
+        let url = registryDirectoryForPersistence().appendingPathComponent(trustedToolsFileName)
+        guard let data = try? IPAPackageScanner.readBoundedRegularFileDirectNoFollow(at: url, maxBytes: maxTrustedToolsBytes),
+              let tools = try? JSONDecoder().decode([WhitelistedTool].self, from: data) else { return }
+        for tool in tools where !tool.isBuiltIn {
+            WhitelistEngine.shared.registerCustomTool(tool)
+        }
+    }
+
+    private func persistCustomWhitelistRules() {
+        let custom = WhitelistEngine.shared.allTools.filter { !$0.isBuiltIn }
+        guard let data = try? JSONEncoder().encode(custom) else { return }
+        try? IPAPackageScanner.writeBoundedRegularFileAtomicNoFollow(data, to: trustedToolsURL)
+    }
+
+    private static func loadPersistedBaseline() -> ScanBaseline? {
+        let url = registryDirectoryForPersistence().appendingPathComponent(baselineFileName)
+        guard let data = try? IPAPackageScanner.readBoundedRegularFileDirectNoFollow(at: url, maxBytes: maxBaselineBytes),
+              let baseline = try? JSONDecoder().decode(ScanBaseline.self, from: data),
+              baseline.formatVersion == ScanBaseline.currentFormatVersion else { return nil }
+        return baseline
+    }
+
+    private func persistBaseline(_ baseline: ScanBaseline) {
+        guard let data = try? JSONEncoder().encode(baseline) else { return }
+        try? IPAPackageScanner.writeBoundedRegularFileAtomicNoFollow(data, to: baselineURL)
+    }
+
+    /// Trusts one finding with a strict capability-bound rule (see
+    /// TrustEngine). Returns false when the finding cannot be trusted
+    /// (escaping symlink, whitelist-ineligible, or brand impersonation).
+    /// A trusted app is shown as its own "trusted" state and never counts
+    /// as new risk again unless its capabilities change.
+    @discardableResult
+    public func trustFinding(_ finding: ScanFinding) -> Bool {
+        guard var rule = TrustEngine.trustRule(for: finding) else { return false }
+        if let existing = WhitelistEngine.shared.tool(named: rule.name), !existing.isBuiltIn,
+           !existing.allowedBundleIds.contains(where: { PatternMatcher.matches(pattern: $0, value: finding.bundleId) }) {
+            rule = WhitelistedTool(
+                name: "\(rule.name) (\(finding.bundleId))",
+                allowedBundleIds: rule.allowedBundleIds,
+                allowedAppGroups: rule.allowedAppGroups,
+                allowedTeamIds: rule.allowedTeamIds,
+                expectedSignatures: rule.expectedSignatures,
+                description: rule.description,
+                isEnabled: true,
+                isBuiltIn: false
+            )
+        }
+        WhitelistEngine.shared.registerCustomTool(rule)
+        self.whitelistedTools = WhitelistEngine.shared.allTools
+        persistCustomWhitelistRules()
+        recalculateSessionTiers()
+        return true
+    }
+
+    /// Records the current scan results as the baseline (also used to
+    /// re-establish it). The diff against the new baseline is empty by
+    /// construction until the next scan finds a change.
+    public func establishBaseline() {
+        guard let session = currentSession else { return }
+        establishBaseline(from: session)
+    }
+
+    private func establishBaseline(from session: ScanSession) {
+        let baseline = BaselineEngine.build(from: session.findings)
+        self.scanBaseline = baseline
+        persistBaseline(baseline)
+        refreshBaselineDiff()
+    }
+
+    public func clearBaseline() {
+        self.scanBaseline = nil
+        self.baselineDiff = nil
+        try? FileManager.default.removeItem(at: baselineURL)
+    }
+
+    public func refreshBaselineDiff() {
+        guard let session = currentSession, let baseline = scanBaseline else {
+            self.baselineDiff = nil
+            return
+        }
+        self.baselineDiff = BaselineEngine.diff(baseline: baseline, current: session.findings)
     }
 
     private func recalculateSessionTiers() {
@@ -1114,6 +1270,7 @@ public final class ScanViewModel: ObservableObject {
             engineVersion: session.engineVersion
         )
         updateExportedReport()
+        refreshBaselineDiff()
     }
 
     // MARK: - Report Export Serialization

@@ -12,6 +12,7 @@ public struct FindingDetailView: View {
     public let finding: ScanFinding
     @EnvironmentObject var vm: ScanViewModel
     @State private var showAddedToast = false
+    @State private var showTrustConfirm = false
 
     public init(finding: ScanFinding) {
         self.finding = finding
@@ -137,13 +138,14 @@ public struct FindingDetailView: View {
                     .padding(.horizontal)
                 }
 
-                // Whitelist Action Button
-                if !finding.isWhitelisted {
+                // Trust Action Button (strict capability-bound rule)
+                if !finding.isWhitelisted,
+                   (finding.riskTier == .highRisk || finding.riskTier == .caution),
+                   TrustEngine.canTrust(finding) {
                     Button(action: {
-                        vm.addCustomWhitelistRule(bundleId: finding.bundleId, name: finding.displayName)
-                        showAddedToast = true
+                        showTrustConfirm = true
                     }) {
-                        Label(WQStrings.addToWhitelistButton, systemImage: "checkmark.shield")
+                        Label(WQStrings.trustAppButton, systemImage: "checkmark.shield")
                             .font(.subheadline.bold())
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -157,6 +159,16 @@ public struct FindingDetailView: View {
             .padding(.vertical, 16)
         }
         .navigationTitle(finding.displayName)
+        .alert(WQStrings.trustConfirmTitle, isPresented: $showTrustConfirm) {
+            Button(WQStrings.trustConfirmAction) {
+                if vm.trustFinding(finding) {
+                    showAddedToast = true
+                }
+            }
+            Button(WQStrings.buttonCancel, role: .cancel) {}
+        } message: {
+            Text(WQStrings.trustConfirmMessage(appName: finding.displayName))
+        }
         .alert(WQStrings.whitelistAddedTitle, isPresented: $showAddedToast) {
             Button(WQStrings.buttonOK, role: .cancel) {}
         } message: {

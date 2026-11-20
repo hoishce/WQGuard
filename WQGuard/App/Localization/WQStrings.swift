@@ -169,6 +169,37 @@ public enum WQStrings {
         return localized("whitelist_added_message", en: "App \"\(appName)\" has been added to local rules. Risk tier adjusted to Known Tool.", zh: "应用「\(appName)」已添加至本地规则，风险等级已调整为已知工具。")
     }
 
+    // MARK: - Trust List & Scan Baseline
+    public static var trustAppButton: String { localized("trust_app_button", en: "Trust This App", zh: "信任此应用") }
+    public static var trustConfirmTitle: String { localized("trust_confirm_title", en: "Trust This App?", zh: "信任此应用？") }
+    public static func trustConfirmMessage(appName: String) -> String {
+        return localized("trust_confirm_message", en: "Add \"\(appName)\" to your trusted list. Trust is bound to its bundle ID, signing team, and the capabilities detected right now. If it gains new privilege-escalation capabilities after an update, you will be alerted again.", zh: "将「\(appName)」加入信任名单。信任会绑定它的 Bundle ID、签名团队与当前检测到的能力；如果它更新后获得了新的越权能力，会再次提醒你。")
+    }
+    public static var trustConfirmAction: String { localized("trust_confirm_action", en: "Trust", zh: "信任") }
+    public static var baselineCardNoNewRiskTitle: String { localized("baseline_card_no_new_risk_title", en: "No New Risks", zh: "无新增风险") }
+    public static func baselineCardNoNewRiskSub(date: String) -> String {
+        return localized("baseline_card_no_new_risk_sub", en: "No new risks vs. the baseline established on \(date).", zh: "与 \(date) 建立的基线相比没有新增风险。")
+    }
+    public static func baselineCardNewRiskTitle(count: Int) -> String {
+        return localized("baseline_card_new_risk_title_\(count)", en: "\(count) New Risks Found", zh: "发现 \(count) 个新增风险")
+    }
+    public static var baselineCardNewRiskSub: String { localized("baseline_card_new_risk_sub", en: "Newly installed or escalated apps — tap to review.", zh: "有新装或风险升级的应用，点击查看。") }
+    public static var baselineCardViewButton: String { localized("baseline_card_view_button", en: "Review New Risks", zh: "查看新增风险") }
+    public static var baselineSectionTitle: String { localized("baseline_section_title", en: "Scan Baseline", zh: "扫描基线") }
+    public static func baselineStatusEstablished(date: String, count: Int) -> String {
+        return localized("baseline_status_established", en: "Baseline established on \(date) · \(count) apps recorded.", zh: "基线已建立：\(date)，共记录 \(count) 个应用。")
+    }
+    public static var baselineStatusNone: String { localized("baseline_status_none", en: "No baseline yet — the first full scan creates one automatically.", zh: "尚未建立基线，首次全盘扫描将自动建立。") }
+    public static var baselineSetButton: String { localized("baseline_set_button", en: "Set Current Results as Baseline", zh: "将当前扫描结果设为基线") }
+    public static var baselineClearButton: String { localized("baseline_clear_button", en: "Clear Baseline", zh: "清除基线") }
+    public static var baselineClearConfirmTitle: String { localized("baseline_clear_confirm_title", en: "Clear Baseline?", zh: "清除基线？") }
+    public static var baselineClearConfirmMessage: String { localized("baseline_clear_confirm_message", en: "The next full scan will establish a new baseline automatically.", zh: "下次全盘扫描将自动建立新的基线。") }
+    public static func filterNewRisks(count: Int) -> String {
+        return localized("filter_new_risks_\(count)", en: "New Risks (\(count))", zh: "新增风险 (\(count))")
+    }
+    public static var noNewRisksTitle: String { localized("no_new_risks_title", en: "No New Risks", zh: "无新增风险") }
+    public static var noNewRisksSub: String { localized("no_new_risks_sub", en: "Nothing changed since the baseline. New or escalated risks will appear here.", zh: "与基线相比没有变化，新增或升级的风险会出现在这里。") }
+
     // MARK: - Remediation Card View
     public static var remediationGuidanceTitle: String { localized("remediation_guidance_title", en: "Remediation Guidance", zh: "处置建议 (Remediation Guidance)") }
     public static var emergencyWorkflowTitle: String { localized("emergency_workflow_title", en: "Emergency Mitigation Workflow:", zh: "应急处置流程:") }

@@ -18,34 +18,60 @@ public struct FindingsView: View {
             // Filter Pills
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
+                    if vm.baselineDiff?.hasNewRisk == true {
+                        FilterChip(
+                            title: WQStrings.filterNewRisks(count: vm.newRiskCount),
+                            isSelected: vm.showNewRisksOnly,
+                            color: .red,
+                            action: {
+                                vm.selectedRiskFilter = nil
+                                vm.showNewRisksOnly = true
+                            }
+                        )
+                    }
                     FilterChip(
                         title: "\(WQStrings.filterAll) (\(vm.totalScannedCount))",
-                        isSelected: vm.selectedRiskFilter == nil,
-                        action: { vm.selectedRiskFilter = nil }
+                        isSelected: vm.selectedRiskFilter == nil && !vm.showNewRisksOnly,
+                        action: {
+                            vm.selectedRiskFilter = nil
+                            vm.showNewRisksOnly = false
+                        }
                     )
                     FilterChip(
                         title: "\(WQStrings.filterHighRisk) (\(vm.highRiskCount))",
                         isSelected: vm.selectedRiskFilter == .highRisk,
                         color: .red,
-                        action: { vm.selectedRiskFilter = .highRisk }
+                        action: {
+                            vm.selectedRiskFilter = .highRisk
+                            vm.showNewRisksOnly = false
+                        }
                     )
                     FilterChip(
                         title: "\(WQStrings.filterKnownTool) (\(vm.knownToolCount))",
                         isSelected: vm.selectedRiskFilter == .knownTool,
                         color: .yellow,
-                        action: { vm.selectedRiskFilter = .knownTool }
+                        action: {
+                            vm.selectedRiskFilter = .knownTool
+                            vm.showNewRisksOnly = false
+                        }
                     )
                     FilterChip(
                         title: "\(WQStrings.filterCaution) (\(vm.cautionCount))",
                         isSelected: vm.selectedRiskFilter == .caution,
                         color: .orange,
-                        action: { vm.selectedRiskFilter = .caution }
+                        action: {
+                            vm.selectedRiskFilter = .caution
+                            vm.showNewRisksOnly = false
+                        }
                     )
                     FilterChip(
                         title: "\(WQStrings.filterSafe) (\(vm.safeCount))",
                         isSelected: vm.selectedRiskFilter == .safe,
                         color: .green,
-                        action: { vm.selectedRiskFilter = .safe }
+                        action: {
+                            vm.selectedRiskFilter = .safe
+                            vm.showNewRisksOnly = false
+                        }
                     )
                 }
                 .padding(.horizontal)
@@ -60,10 +86,10 @@ public struct FindingsView: View {
                     Image(systemName: "checkmark.seal.fill")
                         .font(.system(size: 54))
                         .foregroundColor(.green.opacity(0.8))
-                    Text(vm.currentSession == nil ? WQStrings.noScanPerformed : WQStrings.noFilteredFindings)
+                    Text(vm.showNewRisksOnly ? WQStrings.noNewRisksTitle : (vm.currentSession == nil ? WQStrings.noScanPerformed : WQStrings.noFilteredFindings))
                         .font(.headline)
                         .foregroundColor(.white)
-                    Text(vm.currentSession == nil ? WQStrings.noScanPerformedSub : WQStrings.noFilteredFindingsSub)
+                    Text(vm.showNewRisksOnly ? WQStrings.noNewRisksSub : (vm.currentSession == nil ? WQStrings.noScanPerformedSub : WQStrings.noFilteredFindingsSub))
                         .font(.caption)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)

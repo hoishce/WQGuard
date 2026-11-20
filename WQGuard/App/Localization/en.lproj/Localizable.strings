@@ -122,6 +122,23 @@
 "add_to_whitelist_button" = "Add App to Trusted Whitelist";
 "whitelist_added_title" = "Added to Whitelist";
 "whitelist_added_message" = "App \"%@\" has been added to local rules. Risk tier adjusted to Known Tool.";
+"trust_app_button" = "Trust This App";
+"trust_confirm_title" = "Trust This App?";
+"trust_confirm_message" = "Add \"%@\" to your trusted list. Trust is bound to its bundle ID, signing team, and the capabilities detected right now. If it gains new privilege-escalation capabilities after an update, you will be alerted again.";
+"trust_confirm_action" = "Trust";
+"baseline_card_no_new_risk_title" = "No New Risks";
+"baseline_card_no_new_risk_sub" = "No new risks vs. the baseline established on %@.";
+"baseline_card_new_risk_sub" = "Newly installed or escalated apps — tap to review.";
+"baseline_card_view_button" = "Review New Risks";
+"baseline_section_title" = "Scan Baseline";
+"baseline_status_established" = "Baseline established on %@ · %d apps recorded.";
+"baseline_status_none" = "No baseline yet — the first full scan creates one automatically.";
+"baseline_set_button" = "Set Current Results as Baseline";
+"baseline_clear_button" = "Clear Baseline";
+"baseline_clear_confirm_title" = "Clear Baseline?";
+"baseline_clear_confirm_message" = "The next full scan will establish a new baseline automatically.";
+"no_new_risks_title" = "No New Risks";
+"no_new_risks_sub" = "Nothing changed since the baseline. New or escalated risks will appear here.";
 
 /* Remediation Card View */
 "remediation_guidance_title" = "Remediation Guidance";

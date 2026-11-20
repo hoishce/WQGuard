@@ -118,6 +118,23 @@
 "add_to_whitelist_button" = "将此应用加入信任白名单";
 "whitelist_added_title" = "已加入白名单";
 "whitelist_added_message" = "应用「%@」已添加至本地规则，风险等级已调整为已知工具。";
+"trust_app_button" = "信任此应用";
+"trust_confirm_title" = "信任此应用？";
+"trust_confirm_message" = "将「%@」加入信任名单。信任会绑定它的 Bundle ID、签名团队与当前检测到的能力；如果它更新后获得了新的越权能力，会再次提醒你。";
+"trust_confirm_action" = "信任";
+"baseline_card_no_new_risk_title" = "无新增风险";
+"baseline_card_no_new_risk_sub" = "与 %@ 建立的基线相比没有新增风险。";
+"baseline_card_new_risk_sub" = "有新装或风险升级的应用，点击查看。";
+"baseline_card_view_button" = "查看新增风险";
+"baseline_section_title" = "扫描基线";
+"baseline_status_established" = "基线已建立：%@，共记录 %d 个应用。";
+"baseline_status_none" = "尚未建立基线，首次全盘扫描将自动建立。";
+"baseline_set_button" = "将当前扫描结果设为基线";
+"baseline_clear_button" = "清除基线";
+"baseline_clear_confirm_title" = "清除基线？";
+"baseline_clear_confirm_message" = "下次全盘扫描将自动建立新的基线。";
+"no_new_risks_title" = "无新增风险";
+"no_new_risks_sub" = "与基线相比没有变化，新增或升级的风险会出现在这里。";
 
 /* Remediation Card View */
 "remediation_guidance_title" = "处置建议 (Remediation Guidance)";

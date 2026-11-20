@@ -157,6 +157,52 @@ public struct DashboardView: View {
                 }
                 .padding(.horizontal)
 
+                // 2.5 Baseline Status Card
+                if vm.currentSession != nil, let baseline = vm.scanBaseline {
+                    Button(action: {
+                        if vm.baselineDiff?.hasNewRisk == true {
+                            vm.navigateToNewRisks()
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: vm.baselineDiff?.hasNewRisk == true ? "exclamationmark.triangle.fill" : "checkmark.shield.fill")
+                                .font(.title2)
+                                .foregroundColor(vm.baselineDiff?.hasNewRisk == true ? .red : .green)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(vm.baselineDiff?.hasNewRisk == true
+                                     ? WQStrings.baselineCardNewRiskTitle(count: vm.newRiskCount)
+                                     : WQStrings.baselineCardNoNewRiskTitle)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(vm.baselineDiff?.hasNewRisk == true
+                                     ? WQStrings.baselineCardNewRiskSub
+                                     : WQStrings.baselineCardNoNewRiskSub(date: baseline.createdAt.formatted(date: .abbreviated, time: .omitted)))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if vm.baselineDiff?.hasNewRisk == true {
+                                Text(WQStrings.baselineCardViewButton)
+                                    .font(.caption.bold())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.red.opacity(0.15))
+                                    .foregroundColor(.red)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(14)
+                        .background(Color(.secondarySystemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(vm.baselineDiff?.hasNewRisk == true ? Color.red.opacity(0.5) : Color.green.opacity(0.3), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                }
+
                 // 3. Summary Metrics Grid
                 VStack(alignment: .leading, spacing: 10) {
                     Text(WQStrings.metricsSummary)
@@ -246,6 +292,9 @@ public struct DashboardView: View {
             .padding(.top, 12)
         }
         .navigationTitle(WQStrings.appTitle)
+        .onAppear {
+            vm.autoScanIfConfigured()
+        }
         .sheet(isPresented: $showExportSheet) {
             ReportExportView()
         }

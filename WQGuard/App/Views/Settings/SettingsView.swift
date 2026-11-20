@@ -11,6 +11,7 @@ import WQGuardCore
 public struct SettingsView: View {
     @EnvironmentObject var vm: ScanViewModel
     @State private var showResetConfirm = false
+    @State private var showBaselineClearConfirm = false
 
     public init() {}
 
@@ -81,6 +82,36 @@ public struct SettingsView: View {
                 }
             }
 
+            // Scan Baseline
+            Section {
+                if let baseline = vm.scanBaseline {
+                    Text(WQStrings.baselineStatusEstablished(
+                        date: baseline.createdAt.formatted(date: .abbreviated, time: .omitted),
+                        count: baseline.entries.count
+                    ))
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                } else {
+                    Text(WQStrings.baselineStatusNone)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+
+                Button(action: { vm.establishBaseline() }) {
+                    Label(WQStrings.baselineSetButton, systemImage: "arrow.down.doc.fill")
+                        .foregroundColor(.teal)
+                }
+                .disabled(vm.currentSession == nil)
+
+                if vm.scanBaseline != nil {
+                    Button(role: .destructive, action: { showBaselineClearConfirm = true }) {
+                        Text(WQStrings.baselineClearButton)
+                    }
+                }
+            } header: {
+                Text(WQStrings.baselineSectionTitle)
+            }
+
             // About WQGuard
             Section {
                 HStack {
@@ -121,6 +152,18 @@ public struct SettingsView: View {
             Button(WQStrings.buttonCancel, role: .cancel) {}
         } message: {
             Text(WQStrings.settingsResetConfirmMessage)
+        }
+        .confirmationDialog(
+            WQStrings.baselineClearConfirmTitle,
+            isPresented: $showBaselineClearConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(WQStrings.baselineClearButton, role: .destructive) {
+                vm.clearBaseline()
+            }
+            Button(WQStrings.buttonCancel, role: .cancel) {}
+        } message: {
+            Text(WQStrings.baselineClearConfirmMessage)
         }
     }
 }

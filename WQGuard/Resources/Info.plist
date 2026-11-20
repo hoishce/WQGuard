@@ -48,6 +48,9 @@
 		<string>quantumult-x</string>
 		<string>loon</string>
 		<string>stash</string>
+		<string>livecontainer</string>
+		<string>livecontainer2</string>
+		<string>livecontainer3</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

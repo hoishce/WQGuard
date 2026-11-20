@@ -169,6 +169,28 @@ final class InstalledAppRegistryAndProbeTests: XCTestCase {
         XCTAssertEqual(filza?.evidence.auditDepth, .onDeviceProbe)
     }
 
+    func testOnDeviceProbeDetectsLiveContainer() {
+        // Primary instance scheme resolves to the LiveContainer catalog entry.
+        let primary = OnDeviceAppProbeScanner.shared.evaluateProbes { $0 == "livecontainer" }
+        XCTAssertEqual(primary.count, 1)
+        let lc = primary.first
+        XCTAssertEqual(lc?.bundleId, "com.kdt.livecontainer")
+        XCTAssertEqual(lc?.displayName, "LiveContainer")
+        XCTAssertEqual(lc?.riskTier, .caution, "Container host must surface as .caution, never auto-whitelisted")
+        XCTAssertFalse(lc?.isWhitelisted ?? true)
+        XCTAssertEqual(lc?.evidence.auditDepth, .onDeviceProbe)
+        XCTAssertEqual(lc?.indicators.first?.category, "Privileged Environment Tool")
+
+        // Secondary instance scheme resolves to the same entry.
+        let secondary = OnDeviceAppProbeScanner.shared.evaluateProbes { $0 == "livecontainer2" }
+        XCTAssertEqual(secondary.count, 1)
+        XCTAssertEqual(secondary.first?.bundleId, "com.kdt.livecontainer")
+
+        // An unrelated scheme must not fire the entry.
+        let none = OnDeviceAppProbeScanner.shared.evaluateProbes { $0 == "livecontainer99" }
+        XCTAssertTrue(none.isEmpty)
+    }
+
     // MARK: - 4. Dual-Engine Correlation & Deduplication
 
     func testCorrelateRegistryPackageAndProbeFindings() {

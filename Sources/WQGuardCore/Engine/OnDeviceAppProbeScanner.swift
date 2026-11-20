@@ -163,6 +163,14 @@ public final class OnDeviceAppProbeScanner: @unchecked Sendable {
             role: .privilegedContainerTool,
             summaryZh: "本机探针检出越狱软件包管理器 Zebra。",
             summaryEn: "On-device probe detected jailbreak package manager Zebra."
+        ),
+        AppProbeDefinition(
+            displayName: "LiveContainer",
+            canonicalBundleId: "com.kdt.livecontainer",
+            schemes: ["livecontainer", "livecontainer2", "livecontainer3"],
+            role: .privilegedContainerTool,
+            summaryZh: "本机已安装容器宿主 LiveContainer，可在其中运行未安装到桌面的 guest 应用，具备跨容器读写能力。建议开启系统注册表全量权限审计，或将其 .ipa 文件加入扫描列表做二进制深扫。",
+            summaryEn: "Detected container host LiveContainer on device. It runs guest apps without installing them to the Home Screen and can read/write across containers. Enable full registry auditing or add its .ipa to the scan queue for deep binary inspection."
         )
     ]
 

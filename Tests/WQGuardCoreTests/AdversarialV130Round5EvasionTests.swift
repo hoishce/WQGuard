@@ -259,7 +259,7 @@ extension AdversarialV130Round5EvasionTests {
                 let bin = gen(.init(
                     arch: .arm64,
                     textInstructions: [Self.retInsn],
-                    customSections: [(segName: seg, sectName: sect, flags: 0, payload: cstrings(["pad", ioc.literal]))]
+                    customSections: [(segName: seg, sectName: sect, flags: UInt32(0), payload: cstrings(["pad", ioc.literal]))]
                 ))
                 let f = try MachOScanner.shared.scan(binaryData: bin, context: .init(bundleId: "com.r5.data", appGroups: []))
                 XCTAssertEqual(f.riskTier, .highRisk, "[\(seg),\(sect)] \(ioc.literal) got \(f.riskTier)")
@@ -276,7 +276,7 @@ extension AdversarialV130Round5EvasionTests {
             let bin = gen(.init(
                 arch: .arm64,
                 textInstructions: [Self.retInsn],
-                customSections: [(segName: seg, sectName: sect, flags: 0, payload: payload)]
+                customSections: [(segName: seg, sectName: sect, flags: UInt32(0), payload: payload)]
             ))
             let parsed = try MachOParser.shared.parse(data: bin)
             guard let segment = parsed.segments.first(where: { $0.name == seg }) else {
